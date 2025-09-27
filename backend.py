@@ -1,5 +1,9 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import mysql.connector as msc
-import random
+import random,string
+
+app = Flask(__name__)
+app.secret_key = "secretkey"
 
 myDB = msc.connect(
     host="localhost", user="root", passwd="@B00y@hmysql", database="schedule"
@@ -7,216 +11,290 @@ myDB = msc.connect(
 crs = myDB.cursor()
 
 
-branches = {} #{bid:branch_object}
+@app.route("/")
+def home():
+    return render_template("index.html")
 
-unique_bcourses = {cid:branches[bid].bcourses[sem][cid] 
-            for bid in branches
-            for sem in branches[bid].bcourses
-            for cid in sem
-            if cid not in unique_bcourses
+@app.route("/student")
+def student():
+    return render_template("student_login.html")
+
+@app.route("/admin")
+def admin():
+    return render_template("admin_login.html")
+
+@app.route("/faculty")
+def faculty():
+    return render_template("faculty_login.html")
+
+# Handling login submissions (for later authentication logic)
+@app.route("/admin_login", methods=["POST"])
+def admin_login():
+    username = request.form["username"]
+    password = request.form["password"]
+
+    admin={"1234":"@1234"}
+
+    for a in admin:
+        if a==username:
+            if admin[a]==password:
+                session["user"] = admin[a]
+                session["role"] = "admin"
+                flash("Admin login successful!", "success")
+                return redirect(url_for("admin_dashboard"))   # redirect to dashboard
+                break
+    else:
+        flash("Invalid Admin credentials", "danger")
+        return redirect(url_for("admin"))
+
+@app.route("/admin/dashboard")
+def admin_dashboard():
+    if "user" in session and session.get("role") == "admin":
+        return render_template("admin_dashboard.html")
+    else:
+        flash("You must log in as Admin first", "danger")
+        return redirect(url_for("admin"))
+
+@app.route("/logout")
+def logout():
+    # Clear session data
+    session.clear()
+    flash("You have been logged out.", "info")
+    return redirect(url_for("home"))   # Redirect back to home page
+
+
+@app.route("/admin/add_branch", methods=["GET", "POST"])
+def add_branch():
+    if "user" not in session or session.get("role") != "admin":
+        flash("You must log in as Admin first", "danger")
+        return redirect(url_for("admin"))
+
+    if request.method == "POST":
+        bid = request.form["bid"]
+        bname = request.form["bname"]
+        bseats = request.form["bseats"]
+
+        course_names_s1 = request.form.getlist('course_name_s1[]')
+        course_ids_s1 = request.form.getlist('course_id_s1[]')
+        bcourses_s1 = {
+            cid:cname 
+            for cname, cid in zip(course_names_s1, course_ids_s1)
         }
-pending = {i: 0 for i in unique_bcourses}
+        bcourses_s1_str=",".join(["-".join([i,bcourses_s1[i]]) for i in bcourses_s1])
 
-class Branch:
-    def __init__(self, bid):
-        self.bid = bid
-        self.bname =""
-        self.bseats = 0
-        self.bcourses = []  # [{cid1:course1, cid2:course2},{cid1:course1,cid2:course2}]
-        self.bstudents = {}  # {sid:[sid, sname, password, sbranch, sem, scourses]}
-        self.bstrength = len(self.bstudents)
+        course_names_s2 = request.form.getlist('course_name_s2[]')
+        course_ids_s2 = request.form.getlist('course_id_s2[]')
+        bcourses_s2 = {
+            cid:cname 
+            for cname, cid in zip(course_names_s2, course_ids_s2)
+        }
+        bcourses_s2_str=",".join(["-".join([i,bcourses_s2[i]]) for i in bcourses_s2])
 
-        self.bschedule = []
+        try:
+            query = """INSERT INTO branch (bid, bname, bseats, bstrength, bcourses_s1, bcourses_s2) 
+                       VALUES (%s, %s, %s, %s, %s, %s)"""
+             
+            values = (bid, bname, bseats,0,bcourses_s1_str,bcourses_s2_str)
+            crs.execute(query, values)
 
-    def addBranch(self):
-        self.bname = input("Enter Branch name:")
-        self.bseats = int(input("Enter Branch seats:"))
-        for sem in [1, 2]:
-            print(f"Enter courses offered in semester {sem}:")
-            self.bcourses.append({})
-            c = 1
-            while True:
-                try:
-                    course = input(f"Enter course{c} (or 'done' to finish): ").strip()
-                    if course.lower() == "done":
-                        break
-                    if course in self.bcourses:
-                        print(
-                            f"Course {course} already added. Please enter a different course."
-                        )
-                    else:
-                        cid = input(f"Enter course ID for {course}: ").strip()
-                        self.bcourses[sem - 1][cid] = course
-                        c+= 1
-                except Exception as e:
-                    print(f"Error: {e}. Please enter the course again.")
+            crs.execute(f"CREATE TABLE {bname}(sid INT PRIMARY KEY, sname VARCHAR(100), password VARCHAR(100), sbranch VARCHAR(100), semester INT,scourses VARCHAR(255))")
+            myDB.commit()
 
-        print(f"Branch {self.bname} added with BID:{self.bid}.")
+            flash(f"Branch '{bname}' added successfully!", "success")
+            return redirect(url_for("add_branch"))
 
-    def addStudent(self):
-        sid = self.bid * 1000 + self.bstrength + 1
-        print(f"Student ID: {sid}")
+        except Exception as e:
+            flash(f"Error: {str(e)}", "danger")
+            return redirect(url_for("add_branch"))
 
-        sname = input("Enter Student name: ")
+    return render_template("add_branch.html")
 
-        password = ""
-        for i in random.sample(
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 8
-        ):
-            for j in i:
-                password += j
+@app.route("/admin/add_student", methods=["GET", "POST"])
+def add_student():
+    if "user" not in session or session.get("role") != "admin":
+        flash("You must log in as Admin first", "danger")
+        return redirect(url_for("admin"))
 
-        sem = int(input("Enter semester for in which student is right now: "))
-        scourses = self.bcourses[0] if sem == 1 else self.bcourses[1]
+    # Fetch all branches to show in dropdown
+    crs.execute("SELECT bname, bid, bseats, bstrength, bcourses_s1, bcourses_s2 FROM branch")
+    branches = crs.fetchall()
 
-        self.bstudents[sid] = [sid, sname, password, self.bname, sem, scourses]
-        
-        print(f"Student {sname} added to database with password:{password}.\n")
+    if request.method == "POST":
+        branch_name = request.form["branch"]
+        sname = request.form["sname"]
+        semester = int(request.form["semester"])
 
+        # Get branch info
+        crs.execute("SELECT * FROM branch WHERE bname = %s", (branch_name,))
+        branch = crs.fetchone()
+        bid = branch[0]
+        bstrength = branch[3]
 
-    def is_slot_free(day, period, fid, room_id, bid):
-        crs.execute(f"select * from schedule where day='{day}' and period={period}")
-        slot = crs.fetchall()
-        print(slot)
-        print(type(slot))
-        # if slot == None:
-        # for fid
-        # return True
+        # Auto-generate sid
+        sid = bid * 1000 + bstrength + 1
 
-    
-    def showBranch(self):
-        print(f"""
-        {self.bid}
-        {self.bname}
-        {self.bstudents}
-        {self.bseats}
-        {self.bstrength}
-        {self.bcourses }
-        """
-        )
+        # Auto-generate password (8-char random mix)
+        password = "".join(random.sample("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 8))
 
-def updateDB():
-    crs.execute("select * from branch")
-    d=crs.fetchall()
-    for bid in branches:
-        for row in d:
-            if row[0]==bid:
-                crs.execute(f'''UPDATE branch (
-                    bid=%s,
-                    bname=%s, 
-                    bseats=%s, 
-                    bstrength=s%, 
-                    bcourses_s1=%s, 
-                    bcourses_s2=%s
-                    WHERE bid={bid}''',)
-                
-                crs.execute(f"select * from {branches[bid].bname}")
-                Students=crs.fetcall()
-                for i in branches[bid].students:
-                    s=branches[bid].students
-                    for row in Students:
-                        if row[0]==i:
-                            crs.execute(f'''UPDATE {branches[bid].bname}(
-                                sid=%s,
-                                sname=%s,
-                                password=%s, 
-                                sbranch=%s, 
-                                semester=%s, 
-                                scourses=%s
-                                WHERE sid={i}
-                                ''',(s[i][0],s[i][1],s[i][2],s[i][3],s[i][4],s[i][5]))
-                    else:
-                        crs.execute(f'''INSERT INTO {branches[bid].bname}(
-                            sid=%s,
-                            sname=%s,
-                            password=%s, 
-                            sbranch=%s, 
-                            semester=%s, 
-                            scourses=%s
-                            ''',(s[i][0],s[i][1],s[i][2],s[i][3],s[i][4],s[i][5]))
-                    
-        else:
-            query1 = f'''INSERT INTO branch (bid, bname, bseats, bstrength, bcourses_s1, bcourses_s2) 
-            VALUES (%s, %s, %s, %s, %s, %s)'''
-            values1 = (
-            bid,
-            branches[bid].bname,
-            branches[bid].bseats,
-            branches[bid].bstrength,
-            ",".join(["-".join([i,branches[bid].bcourses[0][i]]) for i in branches[bid].bcourses[0]]),
-            ",".join(["-".join([i,branches[bid].bcourses[1][i]]) for i in branches[bid].bcourses[1]]))
-            crs.execute(query1, values1)
+        # Assign courses based on semester
+        courses = branch[4] if semester == 1 else branch[5]
 
-            crs.execute(f"CREATE TABLE {branches[bid].bname}(sid INT PRIMARY KEY, sname VARCHAR(100), password VARCHAR(100), sbranch VARCHAR(100), semester INT,scourses VARCHAR(255))")
-
-            s=branches[bid].bstudents
-            for i in s:
-                query2=f"INSERT INTO {branches[bid].bname}(sid,sname,password,sbranch,semester,scourses) VALUES(%s,%s,%s,%s,%s,%s)"
-                values2 = (s[i][0], s[i][1], s[i][2], s[i][3], s[i][4], ",".join(["-".join([j,s[i][5][j]]) for j in s[i][5]]))
-                crs.execute(query2, values2)
-
+        # Insert into branch table
+        query = f"""INSERT INTO {branch_name} (sid, sname, password, sbranch, semester, scourses)
+                    VALUES (%s, %s, %s, %s, %s, %s)"""
+        crs.execute(query, (sid, sname, password, branch_name, semester, courses))
         myDB.commit()
 
+        # Update branch strength
+        crs.execute("UPDATE branch SET bstrength = bstrength + 1 WHERE bid = %s", (bid,))
+        myDB.commit()
 
-def mainMenu():
-    print("\n\t\tMain Menu\n")
-    print("1. Add Branch")
-    print("2. Add Student")
-    print("3. Add Faculty")
-    print("4. Add Classroom")
-    print("5. Create Schedule")
-    print("6. Exit")
+        flash(f"Student '{sname}' added with ID {sid} and password {password}", "success")
+        return redirect(url_for("add_student"))
 
-    choice = int(input("Enter your choice: "))
+    return render_template("add_student.html", branches=branches)
 
-    if choice not in [1, 2, 3, 4, 5, 6]:
-        print("Invalid choice")
-        mainMenu()
+@app.route("/admin/add_faculty", methods=["GET", "POST"])
+def add_faculty():
+    if "user" not in session or session.get("role") != "admin":
+        flash("You must log in as Admin first", "danger")
+        return redirect(url_for("admin"))
 
-    elif choice == 6:
-        return True
+    # Fetch all unique courses to show in dropdown
+    crs.execute("SELECT DISTINCT bcourses_s1, bcourses_s2 FROM branch")
+    rows = crs.fetchall()
+    courses = []
+    for row in rows:
+        for sem_courses in row:
+            if sem_courses:
+                for c in sem_courses.split(","):
+                    if "-" in c:
+                        cid, cname = c.split("-")
+                        courses.append((cid.strip(), cname.strip()))
+    courses = list(set(courses))  # remove duplicates
 
-    elif choice == 1:
-        print("\n\t\tBranch Addition Menu")
-        while True:
-            bid = int(input("\nEnter Branch ID: "))
-            if bid not in branches:
-                branches[bid] = Branch(bid)
-                branches[bid].addBranch()
-            else:
-                print(f"Branch with Branch ID:{bid}, Branch name:{branches[bid].bname} already exists.")
+    if request.method == "POST":
+        fid = request.form["fid"]
+        fname = request.form["fname"]
+        cid = request.form["course"]
 
-            exit = input("Do you want to add more Branches? (y/n): ")
-            if exit.lower() == "n":
-                break
+        # Auto-generate password
+        password = "".join(random.sample("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 8))
 
-    elif choice == 2:
-        print("\n\t\tStudent Addition Menu\n")
-        while True:
-            print("Available Branches:")
-            ava_br={}
-            for c, i in zip(branches, range(1, len(branches) + 1)):
-                print(f"{i}.{branches[c].bname}")
-                ava_br[i]=c
+        try:
+            crs.execute(
+                "INSERT INTO faculty (fid, fname, fcourse, password) VALUES (%s, %s, %s, %s)",
+                (fid, fname, cid, password),
+            )
+            myDB.commit()
+            flash(f"Faculty '{fname}' added with ID {fid} and password {password}", "success")
+            return redirect(url_for("add_faculty"))
+        except Exception as e:
+            flash(f"Error: {str(e)}", "danger")
+            return redirect(url_for("add_faculty"))
+
+    return render_template("add_faculty.html", courses=courses)
+
+@app.route("/student_login", methods=["POST"])
+def student_login():
+    sid = request.form["username"]   # Student ID entered
+    password = request.form["password"]
+
+    # Check each branch table because students are stored per branch
+    crs.execute("SELECT * FROM branch")
+    bs = crs.fetchall()
+
+    for branch in bs:
+        branch_name = branch[1]
+        try:
+            query = f"SELECT * FROM {branch_name} WHERE sid = %s AND password = %s"
+            crs.execute(query, (sid, password))
+            student = crs.fetchone()
+
+            if student:
+                session["user"] = student["sname"]
+                session["role"] = "student"
+                flash("Login successful!", "success")
+                return f"Welcome {student[1]}"
+        except Exception as e:
+            # ignore branches without that student
+            continue
+
+    flash("Invalid Student ID or Password", "danger")
+    return redirect(url_for("student"))
+
+import random
+
+@app.route("/admin/create_schedule", methods=["GET", "POST"])
+def create_schedule():
+    if "user" not in session or session.get("role") != "admin":
+        flash("You must log in as Admin first", "danger")
+        return redirect(url_for("admin"))
+
+    DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    schedule = {}
+    selected_branch = None
+
+    # Fetch branches for dropdown
+    crs.execute("SELECT bname, bid, bstrength, bcourses_s1, bcourses_s2 FROM branch")
+    branches = [dict(bname=row[0], bid=row[1], bstrength=row[2],
+                     bcourses_s1=row[3], bcourses_s2=row[4]) for row in crs.fetchall()]
+
+    if request.method == "POST":
+        selected_branch = request.form["branch"]
+
+        # Get that branch info
+        crs.execute("SELECT * FROM branch WHERE bname=%s", (selected_branch,))
+        branch = crs.fetchone()
+        if branch:
+            bid, bname, bseats, bstrength, bcourses_s1, bcourses_s2 = branch
+            courses = []
+            if bcourses_s1:
+                courses.extend([c.split("-")[0] for c in bcourses_s1.split(",")])
+            if bcourses_s2:
+                courses.extend([c.split("-")[0] for c in bcourses_s2.split(",")])
+
+            # Map course -> faculty
+            crs.execute("SELECT fid, fname, fcourse FROM faculty")
+            faculties = crs.fetchall()
+            faculty_map = {row[2]: row[1] for row in faculties}
+
+            # Rooms
+            crs.execute("SELECT room_id FROM classrooms")
+            rooms = [r[0] for r in crs.fetchall()]
+
+            # Build schedule {day: [period1..period8]}
+            import random
+            for day in DAYS:
+                daily = []
+                for period in range(1, 9):
+                    if courses:
+                        cid = random.choice(courses)
+                        faculty = faculty_map.get(cid, "TBD")
+                        room = random.choice(rooms) if rooms else "TBD"
+                        daily.append(f"{cid}<br>{faculty}<br>Room {room}")
+                    else:
+                        daily.append("Free")
+                schedule[day] = daily
+
+    return render_template("create_schedule.html",branches=branches, schedule=schedule,selected_branch=selected_branch)
 
 
-            bno = int(input("\nEnter Branch no. from above:"))
-            if bno in ava_br:
-                branches[ava_br[bno]].addStudent()
-            else:
-                print(
-                    f"Branch does not exist. Please add the branch first."
-                )
 
-            exit = input("Do you want to add more students? (y/n): ")
-            if exit.lower() == "n":
-                break
+@app.route("/faculty_login", methods=["POST"])
+def faculty_login():
+    username = request.form["username"]
+    password = request.form["password"]
+    return f"Faculty {username} logged in with password {password} (demo)."
 
+if __name__ == "__main__":
+    app.run(debug=True)
 
-while True:
-    exit = mainMenu()
-    if exit:
-        updateDB()
-        myDB.close()
-        print("Exiting...")
-        break
+#updateBranchesFromDB()
+# while True:
+#     exit = mainMenu()
+#     if exit:
+#         updateDB()
+#         myDB.close()
+#         print("Exiting...")
+#         break

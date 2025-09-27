@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Branch</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+        }
+        .navbar {
+            background: #e67e22;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        .navbar h2 {
+            margin: 0;
+        }
+        .navbar ul {
+            list-style: none;
+            display: flex;
+            margin: 0;
+            padding: 0;
+            gap: 20px;
+        }
+        .navbar ul li {
+            display: inline;
+        }
+        .navbar ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .navbar ul li a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            margin: 40px auto;
+            width: 400px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h3 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            background: #e67e22;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #ca6516;
+        }
+        .msg {
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: green;
+        }
+        .course-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 5px;
+            align-items: center;
+        }
+        .course-row input.course-name {
+            flex: 3;
+        }
+        .course-row input.course-id {
+            flex: 1;
+        }
+        .remove-btn {
+            flex: 0;
+            background-color: #ccc;
+            border: none;
+            padding: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .remove-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: #555;
+        }
+        button.add-btn, button.submit-btn {
+            margin-top: 10px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <h2><i class="fas fa-user-shield"></i> Admin Dashboard</h2>
+        <ul>
+            <li><a href="/admin/add_branch"><i class="fas fa-building-columns"></i> Add Branch</a></li>
+            <li><a href="/admin/add_student"><i class="fas fa-user-graduate"></i> Add Student</a></li>
+            <li><a href="/admin/add_faculty"><i class="fas fa-chalkboard-teacher"></i> Add Faculty</a></li>
+            <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            <li><a href="/admin/create_schedule"><i class="fas fa-calendar-alt"></i> Create Schedule</a></li>
+        </ul>
+    </div>
+
+    <!-- Content -->
+    <div class="container">
+        <h3><i class="fas fa-building-columns"></i> Add Branch</h3>
+        <form method="POST" action="/admin/add_branch">
+            <label>Branch ID</label>
+            <input type="number" name="bid" required>
+
+            <label>Branch Name</label>
+            <input type="text" name="bname" required>
+
+            <label>Total Seats</label>
+            <input type="number" name="bseats" required>
+
+            <label>Enter Courses:</label>
+            <!-- Semester 1 -->
+            <div class="semester-container" id="semester1-container">
+                <h3>Semester 1 Courses</h3>
+                <div class="course-row">
+                    <input type="text" name="course_id_s1[]" placeholder="Course ID" class="course-id" required>
+                    <input type="text" name="course_name_s1[]" placeholder="Course Name" class="course-name" required>
+                    <button type="button" class="remove-btn" onclick="removeCourse(this)">
+                        <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3V6zm2 3h14v12H5V9zm3 2v8h2v-8H8zm4 0v8h2v-8h-2z"/></svg>
+                    </button>
+                </div>
+                <button type="button" class="add-btn" onclick="addCourse('semester1-container', 's1')">Add Another Course</button>
+            </div>
+
+            <!-- Semester 2 -->
+            <div class="semester-container" id="semester2-container">
+                <h3>Semester 2 Courses</h3>
+                <div class="course-row">
+                    <input type="text" name="course_id_s2[]" placeholder="Course ID" class="course-id" required>
+                    <input type="text" name="course_name_s2[]" placeholder="Course Name" class="course-name" required>
+                    <button type="button" class="remove-btn" onclick="removeCourse(this)">
+                        <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3V6zm2 3h14v12H5V9zm3 2v8h2v-8H8zm4 0v8h2v-8h-2z"/></svg>
+                    </button>
+                </div>
+                <button type="button" class="add-btn" onclick="addCourse('semester2-container', 's2')">Add Another Course</button>
+            </div>
+
+            <button type="submit">Add Branch</button>
+        </form>
+
+        <script>
+            function addCourse(containerId, semester) {
+                const container = document.getElementById(containerId);
+                const div = document.createElement('div');
+                div.className = 'course-row';
+
+                const idInput = document.createElement('input');
+                idInput.type = 'text';
+                idInput.name = `course_id_${semester}[]`;
+                idInput.placeholder = 'Course ID';
+                idInput.required = true;
+                idInput.className = 'course-id';
+
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.name = `course_name_${semester}[]`;
+                nameInput.placeholder = 'Course Name';
+                nameInput.required = true;
+                nameInput.className = 'course-name';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'remove-btn';
+                removeBtn.onclick = function() { removeCourse(removeBtn); };
+                removeBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3V6zm2 3h14v12H5V9zm3 2v8h2v-8H8zm4 0v8h2v-8h-2z"/></svg>
+                `;
+
+                div.appendChild(idInput);
+                div.appendChild(nameInput);
+                div.appendChild(removeBtn);
+
+                // Insert before the "Add Another Course" button
+                const addButton = container.querySelector('.add-btn');
+                container.insertBefore(div, addButton);
+            }
+
+            function removeCourse(button) {
+                const row = button.parentElement;
+                row.remove();
+            }
+        </script>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="msg">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+    </div>
+</body>
+</html>

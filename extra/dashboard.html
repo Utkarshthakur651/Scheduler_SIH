@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Dashboard</h2>
+<table border="1">
+  <tr><th>Branch ID</th><th>Name</th><th>Seats</th><th>Strength</th><th>Sem1 Courses</th><th>Sem2 Courses</th></tr>
+  {% for b in branches.values() %}
+  <tr>
+    <td>{{ b.bid }}</td>
+    <td>{{ b.name }}</td>
+    <td>{{ b.bseats }}</td>
+    <td>{{ b.bstrength }}</td>
+    <td>{{ b.courses_s1 }}</td>
+    <td>{{ b.courses_s2 }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

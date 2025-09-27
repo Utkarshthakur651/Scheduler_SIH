@@ -1,0 +1,51 @@
+faculty = {}
+
+
+
+faculty_map = {
+    "CH2302": "CS151",
+    "Nitin": "CS152",
+    "Amit": "CS153",
+    "Raj": "CS154",
+    "Ankit": "CS155",
+    "Ravi": "CS156",
+}
+rooms = [(101, "R101"), (102, "R102"), (103, "R103"), (104, "R104"), (105, "R105")]
+
+def createSchedule(self, rooms):
+    DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    for day in DAYS:
+        for period in range(1, 9):
+            available = [
+                cid for cid in self.unique_bcourses if self.pending[cid] > 0
+            ]
+            if not available:
+                return
+
+            available.sort(key=lambda c: self.pending[c])
+
+            for cid in available:
+                fid, fname = faculty_map[cid]
+                room_id, room_name = random.choice(rooms)
+
+                if self.is_slot_free(
+                    self.schedule, day, period, fid, room_id, self.bid
+                ):
+                    self.schedule.append(
+                        {
+                            "batch_id": self.bid,
+                            "day": day,
+                            "period": period,
+                            "course_id": cid,
+                            "faculty_id": fid,
+                            "room_id": room_id,
+                        }
+                    )
+                    self.pending[cid] -= 1
+                    break  # move to next slot
+        return self.schedule
+
+elif choice == 5:
+    b_name = input("Enter Branch name for which schedule is to be created: ")
+    schedule = branches[b_name].createSchedule(bid, rooms)
+    print(schedule)

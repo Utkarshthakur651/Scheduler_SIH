@@ -1,0 +1,60 @@
+from flask import Flask, render_template, request, redirect, url_for, flash
+from backend import branches, Branch, updateBranchesFromDB, crs, myDB
+
+app = Flask(__name__)
+app.secret_key = "supersecret"
+
+@app.route("/dashboard")
+def dashboard():
+    updateBranchesFromDB()
+    return render_template("dashboard.html", branches=branches)
+
+# ---- Add Branch ----
+@app.route("/add_branch", methods=["GET", "POST"])
+def add_branch():
+    if request.method == "POST":
+        bid = request.form["bid"]
+        branch_name = request.form["bname"]
+        seats = request.form["seats"]
+        sem = request.form["sem"]
+        courses = request.form["courses"]
+
+        query1 = f"INSERT INTO branch (bid, bname, bseats, bcourses_s{sem}) VALUES (%s, %s, %s, %s)"
+        values1 = (bid, branch_name, seats, courses)
+        query2 = f"""
+            CREATE TABLE IF NOT EXISTS {branch_name} (
+                sid INT PRIMARY KEY,
+                sname VARCHAR(100),
+                scourses VARCHAR(500),
+                password VARCHAR(100)
+            )
+        """
+        crs.execute(query1, values1)
+        crs.execute(query2)
+        myDB.commit()
+        flash(f"Branch {branch_name} added successfully!", "success")
+        return redirect(url_for("dashboard"))
+
+    return render_template("add_branch.html")
+
+# ---- Add Student ----
+@app.route("/add_student", methods=["GET", "POST"])
+def add_student():
+    updateBranchesFromDB()
+    if request.method == "POST":
+        branch_name = request.form["branch"]
+        sname = request.form["sname"]
+        sem = int(request.form["sem"])
+        password = request.form["password"]
+
+        branch = branches[branch_name]
+        sid = branch.bid * 1000 + branch.bstrength + 1
+        branch.addStudent(sid, sname, sem, password)
+
+        flash(f"Student {sname} added to {branch_name}!", "success")
+        return redirect(url_for("dashboard"))
+
+    return render_template("add_student.html", branches=branches)
+
+if __name__ == "__main__":
+    app.run(debug=True)

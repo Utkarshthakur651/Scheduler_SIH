@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login Choice</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        h1 {
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .buttons {
+            display: flex;
+            gap: 30px;
+        }
+        .btn {
+            padding: 20px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            background: #4a90e2;
+            color: white;
+            transition: background 0.3s, transform 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 140px;
+        }
+        .btn i {
+            font-size: 36px;
+        }
+        .btn:hover {
+            background: #357ab8;
+            transform: translateY(-4px);
+        }
+    </style>
+</head>
+<body>
+    <h1>Choose how you want to login</h1>
+    <div class="buttons">
+        <a href="/student"><button class="btn"><i class="fas fa-user-graduate"></i>Student</button></a>
+        <a href="/admin"><button class="btn"><i class="fas fa-user-shield"></i>Admin</button></a>
+        <a href="/faculty"><button class="btn"><i class="fas fa-chalkboard-teacher"></i>Faculty</button></a>
+    </div>
+</body>
+</html>

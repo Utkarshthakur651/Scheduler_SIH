@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+        }
+        .navbar {
+            background: #e67e22;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        .navbar h2 {
+            margin: 0;
+        }
+        .navbar ul {
+            list-style: none;
+            display: flex;
+            margin: 0;
+            padding: 0;
+            gap: 20px;
+        }
+        .navbar ul li {
+            display: inline;
+        }
+        .navbar ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .navbar ul li a:hover {
+            text-decoration: underline;
+        }
+        .content {
+            padding: 30px;
+            text-align: center;
+        }
+        .content h3 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h2><i class="fas fa-user-shield"></i> Admin Dashboard</h2>
+        <ul>
+            <li><a href="/admin/add_branch"><i class="fas fa-building-columns"></i> Add Branch</a></li>
+            <li><a href="/admin/add_student"><i class="fas fa-user-graduate"></i> Add Student</a></li>
+            <li><a href="/admin/add_faculty"><i class="fas fa-chalkboard-teacher"></i> Add Faculty</a></li>
+            <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            <li><a href="/admin/create_schedule"><i class="fas fa-calendar-alt"></i> Create Schedule</a></li>
+        </ul>
+    </div>
+    <div class="content">
+        <h3>Welcome, {{ session['user'] }}!</h3>
+        <p>Select an option from the navigation bar above.</p>
+    </div>
+</body>
+</html>

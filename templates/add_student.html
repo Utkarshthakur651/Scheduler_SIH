@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Student</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+        }
+        .navbar {
+            background: #e67e22;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        .navbar h2 {
+            margin: 0;
+        }
+        .navbar ul {
+            list-style: none;
+            display: flex;
+            margin: 0;
+            padding: 0;
+            gap: 20px;
+        }
+        .navbar ul li {
+            display: inline;
+        }
+        .navbar ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .navbar ul li a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            margin: 40px auto;
+            width: 400px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h3 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            background: #e67e22;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #ca6516;
+        }
+        .msg {
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <h2><i class="fas fa-user-shield"></i> Admin Dashboard</h2>
+        <ul>
+            <li><a href="/admin/add_branch"><i class="fas fa-building-columns"></i> Add Branch</a></li>
+            <li><a href="/admin/add_student"><i class="fas fa-user-graduate"></i> Add Student</a></li>
+            <li><a href="/admin/add_faculty"><i class="fas fa-chalkboard-teacher"></i> Add Faculty</a></li>
+            <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            <li><a href="/admin/create_schedule"><i class="fas fa-calendar-alt"></i> Create Schedule</a></li>
+        </ul>
+    </div>
+
+    <!-- Content -->
+    <div class="container">
+        <h3><i class="fas fa-user-graduate"></i> Add Student</h3>
+        <form method="POST" action="/admin/add_student">
+            <label>Branch</label>
+            <select name="branch" required>
+                {% for branch in branches %}
+                <option value="{{ branch[0] }}">{{ branch[0] }}</option>
+                {% endfor %}
+            </select>
+
+            <label>Student Name</label>
+            <input type="text" name="sname" required>
+
+            <label>Semester</label>
+            <select name="semester" required>
+                <option value="1">1</option>
+                <option value="2">2</option>
+            </select>
+
+            <button type="submit">Add Student</button>
+        </form>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="msg">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+    </div>
+</body>
+</html>
